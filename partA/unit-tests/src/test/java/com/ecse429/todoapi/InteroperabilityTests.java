@@ -123,7 +123,7 @@ public class InteroperabilityTests {
         given().when().delete(path).then().statusCode(anyOf(is(200), is(404), is(400)));
     }
 
-    // -------------------- tests from your manual session --------------------
+    // -------------------- CRUD tests --------------------
 
     @Test
     void todo_category_forward_and_reverse_linking() {
