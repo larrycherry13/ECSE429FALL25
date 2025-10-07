@@ -10,21 +10,11 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Project test suite for Thingifier Todo REST API (v1.5.5)
+ * Project test suite for Todo REST API (v1.5.5)
  * Focus: CRUD operations, relationships, and payload validation for /projects API.
- *
- * Start server:
- *   java -jar runTodoManagerRestAPI-1.5.5.jar
- *
- * Run tests:
- *   mvn -q test
- *
- * Notes:
- * - Each test is self-contained (creates and cleans its own data).
- * - Follows same structure and coding conventions as TodoUnitTests and CategoryTests.
  */
 @TestMethodOrder(MethodOrderer.Random.class)
-public class ToDoProjectUnitTests {
+public class ProjectUnitTests {
 
     private static final String BASE = "http://localhost";
     private static final int PORT = 4567;
@@ -36,15 +26,15 @@ public class ToDoProjectUnitTests {
         given().when().get("/projects").then().statusCode(anyOf(is(200), is(204)));
     }
 
-    // ---------- Helpers ----------
+    @AfterEach
+    void tearDown() {
+        // Clean up all data after each test to ensure test isolation
+        TestHelper.cleanupAllData();
+    }
 
+    // Helpers
     private static String extractId(Response res, String root) {
-        String id = res.path("id");
-        if (id == null && root != null) {
-            Object v = res.path(root + "[0].id");
-            if (v != null) id = String.valueOf(v);
-        }
-        return id;
+        return TestHelper.extractId(res, root);
     }
 
     private static String createProject(String title, String desc, boolean completed) {
@@ -74,10 +64,10 @@ public class ToDoProjectUnitTests {
     }
 
     private static void deleteIfExists(String path) {
-        given().when().delete(path).then().statusCode(anyOf(is(200), is(404), is(400)));
+        TestHelper.deleteIfExists(path);
     }
 
-    // ---------- CRUD Tests ----------
+    // CRUD Tests
 
     @Test
     void get_projects_returns_list_200() {
@@ -142,7 +132,7 @@ public class ToDoProjectUnitTests {
         given().when().delete("/projects/9999999").then().statusCode(404);
     }
 
-    // ---------- Relationship Tests ----------
+    // Relationship Tests
 
     @Test
     void link_and_unlink_task_to_project() {
@@ -197,7 +187,7 @@ public class ToDoProjectUnitTests {
         deleteIfExists("/categories/" + catId);
     }
 
-    // ---------- Validation and Edge Cases ----------
+    // Validation and Edge Cases
 
     @Test
     void post_missing_title_returns_201() {

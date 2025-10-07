@@ -12,14 +12,8 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Interoperability test suite for Thingifier Todo REST API (v1.5.5)
+ * Interoperability test suite for Todo REST API (v1.5.5)
  * Focus: relationships across todos, categories, and projects
- *
- * Server:
- *   java -jar runTodoManagerRestAPI-1.5.5.jar
- *
- * Run:
- *   mvn -q test
  */
 @TestMethodOrder(MethodOrderer.Random.class)
 public class InteroperabilityTests {
@@ -36,15 +30,15 @@ public class InteroperabilityTests {
         given().when().get("/todos").then().statusCode(anyOf(is(200), is(204)));
     }
 
-    // -------------------- helpers --------------------
+    @AfterEach
+    void tearDown() {
+        // Clean up all data after each test to ensure test isolation
+        TestHelper.cleanupAllData();
+    }
 
+    // Helpers
     private static String extractId(Response res, String collectionRoot) {
-        String id = res.path("id");
-        if (id == null && collectionRoot != null) {
-            Object v = res.path(collectionRoot + "[0].id");
-            if (v != null) id = String.valueOf(v);
-        }
-        return id;
+        return TestHelper.extractId(res, collectionRoot);
     }
 
     private static String createTodo(String title, boolean done, String description) {
@@ -120,10 +114,10 @@ public class InteroperabilityTests {
     }
 
     private static void deleteIfExists(String path) {
-        given().when().delete(path).then().statusCode(anyOf(is(200), is(404), is(400)));
+        TestHelper.deleteIfExists(path);
     }
 
-    // -------------------- CRUD tests --------------------
+    // CRUD tests
 
     @Test
     void todo_category_forward_and_reverse_linking() {
@@ -142,7 +136,7 @@ public class InteroperabilityTests {
             .then().statusCode(200)
             .body("categories.find { it.id == '" + categoryId + "' }", notNullValue());
 
-        // after forward link has been asserted OK
+        // After forward link has been asserted OK
         Response rev = given().when().get("/categories/" + categoryId + "/todos")
             .then().statusCode(200)
             .extract().response();
@@ -155,7 +149,7 @@ public class InteroperabilityTests {
         Assumptions.assumeTrue(reverseShowsTodo,
             "Note: reverse category list didn't include todo " + todoId + " after linking (API behavior observed).");
 
-        // cleanup
+        // Cleanup
         deleteIfExists("/todos/" + todoId + "/categories/" + categoryId);
         deleteIfExists("/categories/" + categoryId);
         deleteIfExists("/todos/" + todoId);
@@ -178,12 +172,12 @@ public class InteroperabilityTests {
             .then().statusCode(200)
             .body("projects.find { it.id == '" + projectId + "' }", notNullValue());
 
-        // reverse lookup for project uses /projects/{id}/tasks
+        // Reverse lookup for project uses /projects/{id}/tasks
         given().when().get("/projects/" + projectId + "/tasks")
             .then().statusCode(200)
             .body("todos.find { it.id == '" + todoId + "' }", notNullValue());
 
-        // cleanup
+        // Cleanup
         deleteIfExists("/todos/" + todoId + "/tasksof/" + projectId);
         deleteIfExists("/projects/" + projectId);
         deleteIfExists("/todos/" + todoId);
@@ -195,7 +189,7 @@ public class InteroperabilityTests {
         String categoryId = createCategory("C_Chain-" + System.nanoTime(), "chain");
         String projectId = createProject("P_Chain-" + System.nanoTime(), "chain");
 
-        // link both
+        // Link both
         given().contentType("application/json")
             .body("{\"id\":\"" + categoryId + "\"}")
             .when().post("/todos/" + todoId + "/categories")
@@ -206,7 +200,7 @@ public class InteroperabilityTests {
             .when().post("/todos/" + todoId + "/tasksof")
             .then().statusCode(anyOf(is(200), is(201)));
 
-        // sanity from both sides
+        // Sanity from both sides
         Response rev = given().when().get("/categories/" + categoryId + "/todos")
             .then().statusCode(200)
             .extract().response();
@@ -230,14 +224,14 @@ public class InteroperabilityTests {
         Assumptions.assumeTrue(projectShowsTodo,
             "Note: reverse project tasks didn't include todo " + todoId + " after linking (API behavior observed).");
 
-        // delete project then category
+        // Delete project then category
         given().when().delete("/projects/" + projectId).then().statusCode(200);
         given().when().get("/todos/" + todoId).then().statusCode(200);
 
         given().when().delete("/categories/" + categoryId).then().statusCode(200);
         given().when().get("/todos/" + todoId).then().statusCode(200);
 
-        // cleanup
+        // Cleanup
         deleteIfExists("/todos/" + todoId);
     }
 
@@ -255,8 +249,7 @@ public class InteroperabilityTests {
         deleteIfExists("/todos/" + todoId);
     }
 
-    // -------------------- edge cases from your notes --------------------
-
+    // Edge cases from session notes
     @Test
     void duplicate_link_category_is_graceful() {
         String todoId = createTodo("DupCat-" + System.nanoTime(), false, "dup");
@@ -267,7 +260,7 @@ public class InteroperabilityTests {
             .when().post("/todos/" + todoId + "/categories")
             .then().statusCode(anyOf(is(200), is(201)));
 
-        // linking the same pair again should not 500; accept 200/201/400/409 depending on build
+        // Linking the same pair again should not 500; accept 200/201/400/409 depending on build
         given().contentType("application/json")
             .body("{\"id\":\"" + categoryId + "\"}")
             .when().post("/todos/" + todoId + "/categories")
@@ -282,13 +275,13 @@ public class InteroperabilityTests {
     void malformed_relationship_payloads_return_client_error() {
         String todoId = createTodo("BadRel-" + System.nanoTime(), false, "bad");
 
-        // empty object
+        // Empty object
         given().contentType("application/json")
             .body("{}")
             .when().post("/todos/" + todoId + "/categories")
             .then().statusCode(anyOf(is(400), is(422)));
 
-        // non-numeric id in string form
+        // Non-numeric id in string form
         given().contentType("application/json")
             .body("{\"id\":\"abc\"}")
             .when().post("/todos/" + todoId + "/tasksof")
@@ -323,7 +316,7 @@ public class InteroperabilityTests {
         deleteIfExists("/todos/" + b);
     }
 
-    // optional XML response smoke on GET (prove format support, lenient)
+    // Optional XML response smoke on GET (prove format support, lenient)
     @Test
     void get_todo_as_xml_via_accept_header_200() {
         String id = createTodo("XML-Accept-" + System.nanoTime(), false, "xml");

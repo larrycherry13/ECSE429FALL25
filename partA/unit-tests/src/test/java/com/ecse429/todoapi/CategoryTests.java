@@ -12,15 +12,9 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 
 /**
- * Category test suite for Thingifier Todo REST API (v1.5.5)
+ * Category test suite for Todo REST API (v1.5.5)
  * Focus: CRUD operations and relationships for categories
- *
- * Server:
- *   java -jar runTodoManagerRestAPI-1.5.5.jar
- *
- * Run:
- *   mvn -q test
- */
+  */
 @TestMethodOrder(MethodOrderer.Random.class)
 public class CategoryTests {
 
@@ -36,94 +30,31 @@ public class CategoryTests {
         given().when().get("/todos").then().statusCode(anyOf(is(200), is(204)));
     }
 
-    // helpers
-
-    private static String extractId(Response res, String collectionRoot) {
-        String id = res.path("id");
-        if (id == null && collectionRoot != null) {
-            Object v = res.path(collectionRoot + "[0].id");
-            if (v != null) id = String.valueOf(v);
-        }
-        return id;
+    @AfterEach
+    void tearDown() {
+        // Clean up all data after each test to ensure test isolation
+        TestHelper.cleanupAllData();
     }
 
-    private static String createCategory(String title, String description) {
-        Response res = given()
-            .contentType("application/json")
-            .body(String.format("{\"title\":\"%s\",\"description\":\"%s\"}",
-                title, description == null ? "" : description))
-            .when().post("/categories")
-            .then().statusCode(anyOf(is(200), is(201)))
-            .extract().response();
+    // Helpers
 
-        String id = extractId(res, "categories");
-        if (id == null) {
-            Response r = given().when().get("/categories").then().statusCode(200).extract().response();
-            List<Map<String, Object>> list = r.path("categories");
-            if (list != null) {
-                for (Map<String, Object> c : list) {
-                    if (title.equals(String.valueOf(c.get("title")))) {
-                        Object v = c.get("id");
-                        if (v != null) return String.valueOf(v);
-                    }
-                }
-            }
-        }
-        return id;
+    private static String createCategory(String title, String description) {
+        return TestHelper.createCategory(title, description);
     }
 
     private static String createTodo(String title, boolean done, String description) {
-        Response res = given()
-            .contentType("application/json")
-            .body(String.format("{\"title\":\"%s\",\"doneStatus\":%s,\"description\":\"%s\"}",
-                title, done, description == null ? "" : description))
-            .when().post("/todos")
-            .then().statusCode(anyOf(is(200), is(201)))
-            .extract().response();
-
-        String id = extractId(res, "todos");
-        if (id == null) {
-            Response r = given().queryParam("title", title)
-                .when().get("/todos").then().statusCode(200).extract().response();
-            List<Map<String, Object>> list = r.path("todos");
-            if (list != null && !list.isEmpty()) {
-                Object v = list.get(0).get("id");
-                if (v != null) id = String.valueOf(v);
-            }
-        }
-        return id;
+        return TestHelper.createTodo(title, done, description);
     }
 
     private static String createProject(String title, String description) {
-        Response res = given()
-            .contentType("application/json")
-            .body(String.format("{\"title\":\"%s\",\"description\":\"%s\"}",
-                title, description == null ? "" : description))
-            .when().post("/projects")
-            .then().statusCode(anyOf(is(200), is(201)))
-            .extract().response();
-
-        String id = extractId(res, "projects");
-        if (id == null) {
-            Response r = given().when().get("/projects").then().statusCode(200).extract().response();
-            List<Map<String, Object>> list = r.path("projects");
-            if (list != null) {
-                for (Map<String, Object> p : list) {
-                    if (title.equals(String.valueOf(p.get("title")))) {
-                        Object v = p.get("id");
-                        if (v != null) return String.valueOf(v);
-                    }
-                }
-            }
-        }
-        return id;
+        return TestHelper.createProject(title, description);
     }
 
     private static void deleteIfExists(String path) {
-        given().when().delete(path).then().statusCode(anyOf(is(200), is(404), is(400)));
+        TestHelper.deleteIfExists(path);
     }
 
-    // -------------------- CRUD tests --------------------
+    // CRUD tests
 
     @Test
     void get_categories_returns_list() {
@@ -152,7 +83,7 @@ public class CategoryTests {
             .then().statusCode(anyOf(is(200), is(201)))
             .extract().response();
 
-        String id = extractId(res, "categories");
+        String id = TestHelper.extractId(res, "categories");
         Assertions.assertNotNull(id);
 
         // Verify it exists
@@ -226,9 +157,6 @@ public class CategoryTests {
             .when().post("/categories/" + id)
             .then().statusCode(anyOf(is(200), is(201)));
 
-        // Note: This is confusing API design as per session notes
-        Assumptions.assumeTrue(true, "Note: POST /categories/{id} behaves like PUT, creating confusion.");
-
         deleteIfExists("/categories/" + id);
     }
 
@@ -259,7 +187,7 @@ public class CategoryTests {
         given().when().delete("/categories/999999").then().statusCode(404);
     }
 
-    // -------------------- relationship tests --------------------
+    // Relationship tests
 
     @Test
     void get_category_todos_returns_todos() {
@@ -284,7 +212,7 @@ public class CategoryTests {
     @Test
     void get_nonexistent_category_todos_returns_empty_not_404() {
         // As per session notes, returns empty list instead of 404
-        given().when().get("/categories/999999/todos")
+        given().when().get("/categories/999/todos")
             .then().statusCode(200)
             .body("todos", anyOf(nullValue(), hasSize(0)));
     }
@@ -324,7 +252,7 @@ public class CategoryTests {
             .then().statusCode(anyOf(is(200), is(201)))
             .extract().response();
 
-        String newTodoId = extractId(res, "todos");
+        String newTodoId = TestHelper.extractId(res, "todos");
 
         // Verify it appears in category todos
         given().when().get("/categories/" + categoryId + "/todos")
@@ -425,7 +353,7 @@ public class CategoryTests {
             .then().statusCode(anyOf(is(200), is(201)))
             .extract().response();
 
-        String newProjId = extractId(res, "projects");
+        String newProjId = TestHelper.extractId(res, "projects");
 
         given().when().get("/categories/" + categoryId + "/projects")
             .then().statusCode(200)
@@ -458,7 +386,7 @@ public class CategoryTests {
         deleteIfExists("/projects/" + projectId);
     }
 
-    // -------------------- edge cases --------------------
+    // Edge cases
 
     @Test
     void large_id_returns_404() {
@@ -498,7 +426,7 @@ public class CategoryTests {
             .then().statusCode(anyOf(is(200), is(201)))
             .extract().response();
 
-        String id = extractId(res, "categories");
+        String id = TestHelper.extractId(res, "categories");
         Assertions.assertNotNull(id);
 
         deleteIfExists("/categories/" + id);
