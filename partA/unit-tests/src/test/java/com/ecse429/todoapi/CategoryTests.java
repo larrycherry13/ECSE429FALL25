@@ -210,6 +210,31 @@ public class CategoryTests {
     }
 
     @Test
+    void get_category_todos_returns_todos_observed() {
+        String categoryId = createCategory("CatTodosObs-" + System.nanoTime(), "todos test observed");
+        String todoId = createTodo("TodoForCatObs-" + System.nanoTime(), false, "test observed");
+
+        given().contentType("application/json")
+            .body("{\"id\":\"" + categoryId + "\"}")
+            .when().post("/todos/" + todoId + "/categories")
+            .then().statusCode(anyOf(is(200), is(201)));
+
+        Response response = given().when().get("/categories/" + categoryId + "/todos")
+            .then().statusCode(200)
+            .extract().response();
+
+        // Assert that the relationship is broken
+        List<Map<String, Object>> todos = response.path("todos");
+        boolean todoFound = todos != null && todos.stream()
+            .anyMatch(t -> String.valueOf(t.get("id")).equals(todoId));
+        Assertions.assertFalse(todoFound, "Todo should NOT appear in category's todos due to broken relationship");
+
+        deleteIfExists("/todos/" + todoId + "/categories/" + categoryId);
+        deleteIfExists("/categories/" + categoryId);
+        deleteIfExists("/todos/" + todoId);
+    }
+
+    @Test
     void get_nonexistent_category_todos_returns_empty_not_404() {
         // As per session notes, returns empty list instead of 404
         given().when().get("/categories/999/todos")
@@ -242,6 +267,26 @@ public class CategoryTests {
     }
 
     @Test
+    void post_category_todos_with_id_returns_404_observed() {
+        String categoryId = createCategory("PostTodosCatObs-" + System.nanoTime(), "post todos observed");
+        String todoId = createTodo("PostTodoObs-" + System.nanoTime(), false, "post test observed");
+
+        Response response = given().contentType("application/json")
+            .body("{\"id\":\"" + todoId + "\"}")
+            .when().post("/categories/" + categoryId + "/todos")
+            .then().statusCode(201)
+            .extract().response();
+
+        // Assert the unexpected success response
+        Assertions.assertEquals(201, response.getStatusCode(), "Unexpectedly succeeded with 201 instead of failing with 404");
+        String responseBody = response.getBody().asString();
+        Assertions.assertNotNull(responseBody, "Response should contain body content");
+
+        deleteIfExists("/categories/" + categoryId);
+        deleteIfExists("/todos/" + todoId);
+    }
+
+    @Test
     void post_category_todos_with_title_creates_new_todo_and_links() {
         String categoryId = createCategory("NewTodoCat-" + System.nanoTime(), "new todo");
         String todoTitle = "NewTodo-" + System.nanoTime();
@@ -259,7 +304,7 @@ public class CategoryTests {
             .then().statusCode(200)
             .body("todos.find { it.id == '" + newTodoId + "' }", notNullValue());
 
-        // But not linked via todo categories (as per session notes)
+        // But not linked via todo categories
         Response rev = given().when().get("/todos/" + newTodoId + "/categories")
             .then().statusCode(200)
             .extract().response();
@@ -300,6 +345,27 @@ public class CategoryTests {
     }
 
     @Test
+    void delete_category_todo_removes_relationship_observed() {
+        String categoryId = createCategory("DelRelCatObs-" + System.nanoTime(), "del rel observed");
+        String todoId = createTodo("DelRelTodoObs-" + System.nanoTime(), false, "del rel observed");
+
+        given().contentType("application/json")
+            .body("{\"id\":\"" + categoryId + "\"}")
+            .when().post("/todos/" + todoId + "/categories")
+            .then().statusCode(anyOf(is(200), is(201)));
+
+        // Observed behavior: DELETE returns 404 error instead of 200
+        Response errorResponse = given().when().delete("/categories/" + categoryId + "/todos/" + todoId)
+            .then().statusCode(404)
+            .extract().response();
+
+        Assertions.assertEquals(404, errorResponse.getStatusCode(), "Expected 404 error status code");
+        
+        deleteIfExists("/categories/" + categoryId);
+        deleteIfExists("/todos/" + todoId);
+    }
+
+    @Test
     void get_category_projects_returns_projects() {
         String categoryId = createCategory("CatProj-" + System.nanoTime(), "projects test");
         String projectId = createProject("ProjForCat-" + System.nanoTime(), "test");
@@ -313,6 +379,31 @@ public class CategoryTests {
         given().when().get("/categories/" + categoryId + "/projects")
             .then().statusCode(200)
             .body("projects.find { it.id == '" + projectId + "' }", notNullValue());
+
+        deleteIfExists("/projects/" + projectId + "/categories/" + categoryId);
+        deleteIfExists("/categories/" + categoryId);
+        deleteIfExists("/projects/" + projectId);
+    }
+
+    @Test
+    void get_category_projects_returns_projects_observed() {
+        String categoryId = createCategory("CatProjObs-" + System.nanoTime(), "projects test observed");
+        String projectId = createProject("ProjForCatObs-" + System.nanoTime(), "test observed");
+
+        given().contentType("application/json")
+            .body("{\"id\":\"" + categoryId + "\"}")
+            .when().post("/projects/" + projectId + "/categories")
+            .then().statusCode(anyOf(is(200), is(201)));
+
+        // Observed behavior: project is NOT in category's projects list even after linking
+        Response response = given().when().get("/categories/" + categoryId + "/projects")
+            .then().statusCode(200)
+            .extract().response();
+
+        List<Map<String, Object>> projects = response.path("projects");
+        boolean projectFound = projects != null && projects.stream()
+            .anyMatch(p -> String.valueOf(p.get("id")).equals(projectId));
+        Assertions.assertFalse(projectFound, "Project should NOT appear in category's projects due to broken relationship");
 
         deleteIfExists("/projects/" + projectId + "/categories/" + categoryId);
         deleteIfExists("/categories/" + categoryId);
@@ -337,6 +428,26 @@ public class CategoryTests {
             .body("{\"id\":\"" + projectId + "\"}")
             .when().post("/categories/" + categoryId + "/projects")
             .then().statusCode(404);
+
+        deleteIfExists("/categories/" + categoryId);
+        deleteIfExists("/projects/" + projectId);
+    }
+
+    @Test
+    void post_category_projects_with_id_returns_404_observed() {
+        String categoryId = createCategory("PostProjCatObs-" + System.nanoTime(), "post proj observed");
+        String projectId = createProject("PostProjObs-" + System.nanoTime(), "post test observed");
+
+        // Observed behavior: linking existing project returns 201 instead of expected 404
+        Response response = given().contentType("application/json")
+            .body("{\"id\":\"" + projectId + "\"}")
+            .when().post("/categories/" + categoryId + "/projects")
+            .then().statusCode(201)
+            .extract().response();
+
+        Assertions.assertEquals(201, response.getStatusCode(), "Unexpectedly succeeded with 201 instead of failing with 404");
+        String responseBody = response.getBody().asString();
+        Assertions.assertNotNull(responseBody, "Response should contain body content");
 
         deleteIfExists("/categories/" + categoryId);
         deleteIfExists("/projects/" + projectId);
@@ -386,6 +497,27 @@ public class CategoryTests {
         deleteIfExists("/projects/" + projectId);
     }
 
+    @Test
+    void delete_category_project_removes_relationship_observed() {
+        String categoryId = createCategory("DelProjRelCatObs-" + System.nanoTime(), "del proj rel observed");
+        String projectId = createProject("DelProjRelObs-" + System.nanoTime(), "del rel observed");
+
+        given().contentType("application/json")
+            .body("{\"id\":\"" + categoryId + "\"}")
+            .when().post("/projects/" + projectId + "/categories")
+            .then().statusCode(anyOf(is(200), is(201)));
+
+        // Observed behavior: DELETE returns 404 error instead of 200
+        Response errorResponse = given().when().delete("/categories/" + categoryId + "/projects/" + projectId)
+            .then().statusCode(404)
+            .extract().response();
+
+        Assertions.assertEquals(404, errorResponse.getStatusCode(), "Expected 404 error status code");
+        
+        deleteIfExists("/categories/" + categoryId);
+        deleteIfExists("/projects/" + projectId);
+    }
+
     // Edge cases
 
     @Test
@@ -430,6 +562,20 @@ public class CategoryTests {
         Assertions.assertNotNull(id);
 
         deleteIfExists("/categories/" + id);
+    }
+
+    @Test
+    void unexpected_fields_in_payload_observed() {
+        // Observed behavior: POST with extra fields returns 400 error instead of 200/201
+        Response errorResponse = given().contentType("application/json")
+            .body("{\"title\":\"ExtraFieldObs-" + System.nanoTime() + "\",\"description\":\"test\",\"extra\":\"field\"}")
+            .when().post("/categories")
+            .then().statusCode(400)
+            .extract().response();
+
+        Assertions.assertEquals(400, errorResponse.getStatusCode(), "Expected 400 error status code");
+        String errorMessage = errorResponse.getBody().asString();
+        Assertions.assertNotNull(errorMessage, "Error response should contain a message");
     }
 
     @Test
