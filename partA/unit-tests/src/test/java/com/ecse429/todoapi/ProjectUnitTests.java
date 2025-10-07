@@ -219,4 +219,65 @@ public class ProjectUnitTests {
         Assertions.assertNotEquals(a, b);
         deleteIfExists("/projects/" + b);
     }
+
+    @Test
+    void project_id_resets_to_one_after_delete_when_empty() {
+        // Clean slate: ensure no projects exist
+        Response before = given().when().get("/projects").then().statusCode(anyOf(is(200), is(204))).extract().response();
+        List<Map<String, Object>> existing = before.path("projects");
+        if (existing != null) {
+            for (Map<String, Object> p : existing) {
+                Object v = p.get("id");
+                if (v != null) {
+                    given().when().delete("/projects/" + v).then().statusCode(anyOf(is(200), is(404)));
+                }
+            }
+        }
+
+        // Create → Delete → Re-Create
+        String firstId = createProject("ResetTest-" + System.nanoTime(), "first", false);
+        given().when().delete("/projects/" + firstId).then().statusCode(anyOf(is(200), is(204)));
+
+        String newId = createProject("ResetTest-" + System.nanoTime(), "second", false);
+
+        // Assert that the new project’s id is "1"
+        Assertions.assertEquals("1", newId, "Expected ID to reset to 1 when DB is empty.");
+
+        deleteIfExists("/projects/" + newId);
+    }
+
+    @Test
+    void put_with_id_field_changes_project_id() {
+        // Clean up to ensure only one project exists
+        Response before = given().when().get("/projects").then().statusCode(anyOf(is(200), is(204))).extract().response();
+        List<Map<String, Object>> existing = before.path("projects");
+        if (existing != null) {
+            for (Map<String, Object> p : existing) {
+                Object v = p.get("id");
+                if (v != null) {
+                    given().when().delete("/projects/" + v).then().statusCode(anyOf(is(200), is(404)));
+                }
+            }
+        }
+
+        // Create a single project
+        String id = createProject("PutIdTest-" + System.nanoTime(), "before", false);
+
+        // PUT with an "id" field to rename the id
+        String newId = "42";
+        given().contentType("application/json")
+            .body("{\"id\":\"" + newId + "\",\"title\":\"ChangedId\",\"description\":\"check\",\"completed\":false}")
+            .when().put("/projects/" + id)
+            .then().statusCode(anyOf(is(200), is(201)));
+
+        // Verify that the project now has id = 42
+        given().when().get("/projects/" + newId)
+            .then().statusCode(200)
+            .body("projects[0].id", equalTo(newId))
+            .body("projects[0].title", equalTo("ChangedId"));
+
+        deleteIfExists("/projects/" + newId);
+    }
 }
+
+
