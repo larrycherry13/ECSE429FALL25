@@ -1,4 +1,4 @@
-package test.java.com.ecse429.todoapi.steps;
+package com.ecse429.todoapi.steps;
 
 import java.io.IOException;
 import java.net.URI;

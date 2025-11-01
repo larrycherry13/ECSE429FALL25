@@ -47,6 +47,11 @@ public class Hooks {
             api.delete("/todos/" + id);
         }
 
+        // delete any categories we created in this Scenario
+        for (String id : ctx.getCreatedCategoryIds()) {
+            api.delete("/categories/" + id);
+        }
+
         // clean memory copy
         ctx.reset();
     }

@@ -27,6 +27,16 @@ public class SharedContext {
     // list of ALL todos we created in this scenario (so we can delete them in @After)
     private final List<String> createdTodoIds = new ArrayList<>();
 
+    // the last category id we created successfully
+    private String lastCreatedCategoryId;
+
+    // store the last created category's title and description for updates
+    private String lastCreatedCategoryTitle;
+    private String lastCreatedCategoryDescription;
+
+    // list of ALL categories we created in this scenario (so we can delete them in @After)
+    private final List<String> createdCategoryIds = new ArrayList<>();
+
     public HttpResponse<String> getLastResponse() {
         return lastResponse;
     }
@@ -69,6 +79,40 @@ public class SharedContext {
         return createdTodoIds;
     }
 
+    public String getLastCreatedCategoryId() {
+        return lastCreatedCategoryId;
+    }
+
+    public void setLastCreatedCategoryId(String lastCreatedCategoryId) {
+        this.lastCreatedCategoryId = lastCreatedCategoryId;
+    }
+
+    public String getLastCreatedCategoryTitle() {
+        return lastCreatedCategoryTitle;
+    }
+
+    public void setLastCreatedCategoryTitle(String lastCreatedCategoryTitle) {
+        this.lastCreatedCategoryTitle = lastCreatedCategoryTitle;
+    }
+
+    public String getLastCreatedCategoryDescription() {
+        return lastCreatedCategoryDescription;
+    }
+
+    public void setLastCreatedCategoryDescription(String lastCreatedCategoryDescription) {
+        this.lastCreatedCategoryDescription = lastCreatedCategoryDescription;
+    }
+
+    public void trackCreatedCategoryId(String id) {
+        if (id != null && !id.isEmpty()) {
+            createdCategoryIds.add(id);
+        }
+    }
+
+    public List<String> getCreatedCategoryIds() {
+        return createdCategoryIds;
+    }
+
     // wipe all scenario info
     public void reset() {
         lastResponse = null;
@@ -76,6 +120,10 @@ public class SharedContext {
         lastCreatedTodoTitle = null;
         lastCreatedTodoDescription = null;
         createdTodoIds.clear();
+        lastCreatedCategoryId = null;
+        lastCreatedCategoryTitle = null;
+        lastCreatedCategoryDescription = null;
+        createdCategoryIds.clear();
     }
 
     // ---- helpers to parse JSON bodies in a lazy/simple way ----
@@ -98,5 +146,32 @@ public class SharedContext {
         int secondQuote = body.indexOf("\"", firstQuote + 1);
         if (secondQuote == -1) return null;
         return body.substring(firstQuote + 1, secondQuote);
+    }
+
+    public String extractIdFromCategoryJson(String body) {
+        // same naive logic for categories
+        return extractIdFromTodoJson(body);
+    }
+
+    public int countCategoriesInJson(String body) {
+        if (body == null) return 0;
+        int count = 0;
+        int idx = 0;
+        while ((idx = body.indexOf("\"id\"", idx)) != -1) {
+            count++;
+            idx++;
+        }
+        return count;
+    }
+
+    public int countTodosInJson(String body) {
+        if (body == null) return 0;
+        int count = 0;
+        int idx = 0;
+        while ((idx = body.indexOf("\"id\"", idx)) != -1) {
+            count++;
+            idx++;
+        }
+        return count;
     }
 }

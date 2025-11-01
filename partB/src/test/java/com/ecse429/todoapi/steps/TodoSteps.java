@@ -96,7 +96,7 @@ public class TodoSteps {
 
     @When("I delete a todo that does not exist")
     public void delete_nonexistent_todo() throws Exception {
-        HttpResponse<String> res = api.delete("/todos/999999");
+        HttpResponse<String> res = api.delete("/todos/100");
         ctx.setLastResponse(res);
     }
 
