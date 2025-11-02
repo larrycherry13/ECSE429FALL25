@@ -37,6 +37,16 @@ public class SharedContext {
     // list of ALL categories we created in this scenario (so we can delete them in @After)
     private final List<String> createdCategoryIds = new ArrayList<>();
 
+    // the last project id we created successfully
+    private String lastCreatedProjectId;
+
+    // store the last created project's title and description for updates
+    private String lastCreatedProjectTitle;
+    private String lastCreatedProjectDescription;
+
+    // list of ALL projects we created in this scenario (so we can delete them in @After)
+    private final List<String> createdProjectIds = new ArrayList<>();
+
     public HttpResponse<String> getLastResponse() {
         return lastResponse;
     }
@@ -113,6 +123,40 @@ public class SharedContext {
         return createdCategoryIds;
     }
 
+    public String getLastCreatedProjectId() {
+        return lastCreatedProjectId;
+    }
+
+    public void setLastCreatedProjectId(String lastCreatedProjectId) {
+        this.lastCreatedProjectId = lastCreatedProjectId;
+    }
+
+    public String getLastCreatedProjectTitle() {
+        return lastCreatedProjectTitle;
+    }
+
+    public void setLastCreatedProjectTitle(String lastCreatedProjectTitle) {
+        this.lastCreatedProjectTitle = lastCreatedProjectTitle;
+    }
+
+    public String getLastCreatedProjectDescription() {
+        return lastCreatedProjectDescription;
+    }
+
+    public void setLastCreatedProjectDescription(String lastCreatedProjectDescription) {
+        this.lastCreatedProjectDescription = lastCreatedProjectDescription;
+    }
+
+    public void trackCreatedProjectId(String id) {
+        if (id != null && !id.isEmpty()) {
+            createdProjectIds.add(id);
+        }
+    }
+
+    public List<String> getCreatedProjectIds() {
+        return createdProjectIds;
+    }
+
     // wipe all scenario info
     public void reset() {
         lastResponse = null;
@@ -124,6 +168,10 @@ public class SharedContext {
         lastCreatedCategoryTitle = null;
         lastCreatedCategoryDescription = null;
         createdCategoryIds.clear();
+        lastCreatedProjectId = null;
+        lastCreatedProjectTitle = null;
+        lastCreatedProjectDescription = null;
+        createdProjectIds.clear();
     }
 
     // ---- helpers to parse JSON bodies in a lazy/simple way ----
@@ -150,6 +198,11 @@ public class SharedContext {
 
     public String extractIdFromCategoryJson(String body) {
         // same naive logic for categories
+        return extractIdFromTodoJson(body);
+    }
+
+    public String extractIdFromProjectJson(String body) {
+        // same naive logic for projects
         return extractIdFromTodoJson(body);
     }
 
