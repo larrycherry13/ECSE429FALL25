@@ -1,5 +1,5 @@
 Feature: Create Category
-  As a project manager
+  As a user
   I want to create new categories
   So that I can organize todos and projects
 

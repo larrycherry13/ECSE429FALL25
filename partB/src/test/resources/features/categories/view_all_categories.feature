@@ -1,7 +1,7 @@
 Feature: View All Categories
-  As a team member
+  As a user
   I want to view all categories
-  So that I can see the complete organization structure
+  So that I can see all possible categories
 
   Background:
     Given the todo API service is running

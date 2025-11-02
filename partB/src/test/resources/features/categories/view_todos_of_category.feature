@@ -1,5 +1,5 @@
 Feature: View Todos of Category
-  As a team member
+  As a user
   I want to view all todos associated with a category
   So that I can see related tasks
 

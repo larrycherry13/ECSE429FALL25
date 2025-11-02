@@ -1,7 +1,7 @@
 Feature: Delete Category
-  As a project manager
+  As a user
   I want to remove obsolete categories
-  So that my organization system stays clean
+  So that my organization stays clean
 
   Background:
     Given the todo API service is running

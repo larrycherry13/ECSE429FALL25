@@ -1,7 +1,7 @@
 Feature: Update Category
-  As a team member
-  I want to update category descriptions
-  So that they stay accurate and relevant
+  As a user
+  I want to update categories
+  So that they stay accurate and up to date
 
   Background:
     Given the todo API service is running
