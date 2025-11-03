@@ -2,72 +2,138 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
-         http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.ecse429</groupId>
-    <artifactId>todo-api-tests</artifactId>
-    <version>1.0.0</version>
-    <packaging>jar</packaging>
+  <groupId>com.ecse429</groupId>
+  <artifactId>todo-api-tests</artifactId>
+  <version>1.0.0</version>
+  <packaging>jar</packaging>
 
-    <name>Todo Manager API Unit Tests</name>
-    <description>Unit test suite for Todo Manager REST API - ECSE-429 Project Part A</description>
+  <name>Todo Manager API Unit Tests</name>
+  <description>Unit test suite for Todo Manager REST API - ECSE-429 Project Part A</description>
 
-    <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <junit.version>5.9.2</junit.version>
-        <rest-assured.version>5.3.0</rest-assured.version>
-    </properties>
+  <properties>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <junit.version>5.9.2</junit.version>
+    <rest-assured.version>5.3.0</rest-assured.version>
+    <junit.platform.version>1.9.2</junit.platform.version>
+  </properties>
 
-    <dependencies>
-        <!-- JUnit 5 -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>${junit.version}</version>
-            <scope>test</scope>
-        </dependency>
-        
-        <!-- REST Assured for API testing -->
-        <dependency>
-            <groupId>io.rest-assured</groupId>
-            <artifactId>rest-assured</artifactId>
-            <version>${rest-assured.version}</version>
-            <scope>test</scope>
-        </dependency>
-        
-        <!-- JSON processing -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.15.2</version>
-            <scope>test</scope>
-        </dependency>
-        
-        <!-- XML processing -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-xml</artifactId>
-            <version>2.15.2</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
+  <dependencies>
+    <!-- JUnit 5 -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.0.0</version>
-                <configuration>
-                    <includes>
-                        <include>**/*Test.java</include>
-                        <include>**/*Tests.java</include>
-                    </includes>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+    <!-- REST Assured for API testing -->
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>rest-assured</artifactId>
+      <version>${rest-assured.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JSON processing -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.15.2</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- XML processing -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-xml</artifactId>
+      <version>2.15.2</version>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- JUnit Platform Console Launcher for pretty ✔/✘ output -->
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-console</artifactId>
+      <version>${junit.platform.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <!-- Explicit compiler plugin (Java 11) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+        <configuration>
+          <source>${maven.compiler.source}</source>
+          <target>${maven.compiler.target}</target>
+          <release>11</release>
+        </configuration>
+      </plugin>
+
+      <!-- Surefire: runs tests and writes XML reports -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <includes>
+            <include>**/*Test.java</include>
+            <include>**/*Tests.java</include>
+          </includes>
+          <!-- Also print a brief summary to console -->
+          <printSummary>true</printSummary>
+          <reportFormat>brief</reportFormat>
+          <useFile>false</useFile>
+          <redirectTestOutputToFile>false</redirectTestOutputToFile>
+          <!-- Avoid module path issues on newer JDKs -->
+          <useModulePath>false</useModulePath>
+        </configuration>
+      </plugin>
+
+      <!-- Exec: a second pass that prints per-test ✔ / ✘ to the console -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <id>pretty-console-run</id>
+            <phase>test</phase>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <configuration>
+              <mainClass>org.junit.platform.console.ConsoleLauncher</mainClass>
+              <classpathScope>test</classpathScope>
+              <arguments>
+                <!-- Discover tests on the test classpath -->
+                <argument>--scan-class-path</argument>
+
+                <!-- Limit to your package (optional). Remove to scan all. -->
+                <argument>--include-package</argument>
+                <argument>com.ecse429.todoapi</argument>
+
+                <!-- Pretty per-test output -->
+                <argument>--details</argument>
+                <argument>tree</argument>
+                <argument>--details-theme</argument>
+                <argument>unicode</argument> <!-- use 'ascii' if your terminal can't render ✔/✘ -->
+
+                <!-- Fail if no tests are discovered -->
+                <argument>--fail-if-no-tests</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
