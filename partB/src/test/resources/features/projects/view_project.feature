@@ -1,5 +1,5 @@
 Feature: View Project
-  As a team member
+  As a user
   I want to view project details
   So that I can see project information
 

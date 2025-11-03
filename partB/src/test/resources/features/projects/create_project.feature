@@ -1,5 +1,5 @@
 Feature: Create Project
-  As a team lead
+  As a user
   I want to create new projects
   So that I can organize related tasks
 

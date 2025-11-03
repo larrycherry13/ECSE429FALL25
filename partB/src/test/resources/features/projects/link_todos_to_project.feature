@@ -1,5 +1,5 @@
 Feature: Link Todos to Project
-  As a team lead
+  As a user
   I want to link todos to projects
   So that I can track tasks within projects
 

@@ -1,5 +1,5 @@
 Feature: Complete Project
-  As a team lead
+  As a user
   I want to mark projects as completed
   So that I can track finished work
 

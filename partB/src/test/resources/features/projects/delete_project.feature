@@ -1,5 +1,5 @@
 Feature: Delete Project
-  As a team lead
+  As a user
   I want to remove old or completed projects
   So that my workspace stays organized
 

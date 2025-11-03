@@ -1,5 +1,5 @@
 Feature: Update Project
-  As a team lead
+  As a user
   I want to update project descriptions
   So that project details stay current
 
