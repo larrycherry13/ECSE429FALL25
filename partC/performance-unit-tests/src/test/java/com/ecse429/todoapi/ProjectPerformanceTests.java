@@ -66,11 +66,11 @@ public class ProjectPerformanceTests {
             // Measure individual create operations
             List<String> createdIds = new ArrayList<>();
             for (int i = 0; i < count; i++) {
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     String id = PerformanceTestHelper.createRandomProject();
                     createdIds.add(id);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -106,7 +106,7 @@ public class ProjectPerformanceTests {
 
             // Measure update operations
             for (String id : projectIds) {
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     String newTitle = "Updated-" + PerformanceTestHelper.generateRandomString(10);
                     String newDesc = "UpdatedDesc-" + PerformanceTestHelper.generateRandomString(15);
 
@@ -117,7 +117,7 @@ public class ProjectPerformanceTests {
                             .when().post("/projects/" + id)
                             .then().statusCode(200);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -150,12 +150,12 @@ public class ProjectPerformanceTests {
 
             // Measure delete operations
             for (String id : projectIds) {
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     given()
                             .when().delete("/projects/" + id)
                             .then().statusCode(200);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);

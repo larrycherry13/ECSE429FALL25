@@ -82,12 +82,12 @@ public class RelationshipPerformanceTests {
                 String todoId = todoIds.get(i);
                 String categoryId = categoryIds.get(i);
 
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     given()
                             .when().delete("/todos/" + todoId + "/categories/" + categoryId)
                             .then().statusCode(anyOf(is(200), is(404)));
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -137,12 +137,12 @@ public class RelationshipPerformanceTests {
                 String todoId = todoIds.get(i);
                 String projectId = projectIds.get(i);
 
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     given()
                             .when().delete("/todos/" + todoId + "/tasksof/" + projectId)
                             .then().statusCode(anyOf(is(200), is(404)));
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -181,7 +181,7 @@ public class RelationshipPerformanceTests {
             PerformanceTestHelper.safeDeleteProject(wProj);
 
             // Measure entire complex scenario
-            long timing = PerformanceTestHelper.measureOperation(() -> {
+            PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                 // Create all objects
                 List<String> todoIds = PerformanceTestHelper.createRandomTodos(count);
                 List<String> categoryIds = PerformanceTestHelper.createRandomCategories(count);
@@ -194,7 +194,7 @@ public class RelationshipPerformanceTests {
                 }
             });
 
-            result.addTiming(timing);
+            result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
 
             PerformanceTestHelper.printResults(result);
             allResults.add(result);
@@ -230,15 +230,15 @@ public class RelationshipPerformanceTests {
             // Measure creating multiple relationships to the same todo
             for (int i = 0; i < relCount; i++) {
                 final int index = i; // Make effectively final for lambda
-                long catTiming = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics catMetrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     PerformanceTestHelper.createTodoCategoryRelationship(todoId, categoryIds.get(index));
                 });
-                result.addTiming(catTiming);
+                result.addTiming(catMetrics.durationNanos, catMetrics.cpuPercent, catMetrics.memoryMB);
 
-                long projTiming = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics projMetrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     PerformanceTestHelper.createTodoProjectRelationship(todoId, projectIds.get(index));
                 });
-                result.addTiming(projTiming);
+                result.addTiming(projMetrics.durationNanos, projMetrics.cpuPercent, projMetrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);

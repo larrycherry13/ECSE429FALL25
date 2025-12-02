@@ -67,11 +67,11 @@ public class TodoPerformanceTests {
             // Measure individual create operations
             List<String> createdIds = new ArrayList<>();
             for (int i = 0; i < count; i++) {
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     String id = PerformanceTestHelper.createRandomTodo();
                     createdIds.add(id);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -107,7 +107,7 @@ public class TodoPerformanceTests {
 
             // Measure update operations
             for (String id : todoIds) {
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     String newTitle = "Updated-" + PerformanceTestHelper.generateRandomString(10);
                     String newDesc = "UpdatedDesc-" + PerformanceTestHelper.generateRandomString(15);
                     boolean newStatus = PerformanceTestHelper.generateRandomBoolean();
@@ -119,7 +119,7 @@ public class TodoPerformanceTests {
                             .when().post("/todos/" + id)
                             .then().statusCode(200);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -152,12 +152,12 @@ public class TodoPerformanceTests {
 
             // Measure delete operations
             for (String id : todoIds) {
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     given()
                             .when().delete("/todos/" + id)
                             .then().statusCode(200);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -188,10 +188,10 @@ public class TodoPerformanceTests {
                 String todoId = todoIds.get(i);
                 String categoryId = categoryIds.get(i);
 
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     PerformanceTestHelper.createTodoCategoryRelationship(todoId, categoryId);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -230,10 +230,10 @@ public class TodoPerformanceTests {
                 String todoId = todoIds.get(i);
                 String projectId = projectIds.get(i);
 
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     PerformanceTestHelper.createTodoProjectRelationship(todoId, projectId);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);

@@ -62,11 +62,11 @@ public class CategoryPerformanceTests {
 
             List<String> createdIds = new ArrayList<>();
             for (int i = 0; i < count; i++) {
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     String id = PerformanceTestHelper.createRandomCategory();
                     createdIds.add(id);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -102,7 +102,7 @@ public class CategoryPerformanceTests {
 
             // Measure update operations
             for (String id : categoryIds) {
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     String newTitle = "Updated-" + PerformanceTestHelper.generateRandomString(10);
                     String newDesc = "UpdatedDesc-" + PerformanceTestHelper.generateRandomString(15);
 
@@ -113,7 +113,7 @@ public class CategoryPerformanceTests {
                             .when().post("/categories/" + id)
                             .then().statusCode(200);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);
@@ -146,12 +146,12 @@ public class CategoryPerformanceTests {
 
             // Measure delete operations
             for (String id : categoryIds) {
-                long timing = PerformanceTestHelper.measureOperation(() -> {
+                PerformanceTestHelper.OperationMetrics metrics = PerformanceTestHelper.measureOperationWithMetrics(() -> {
                     given()
                             .when().delete("/categories/" + id)
                             .then().statusCode(200);
                 });
-                result.addTiming(timing);
+                result.addTiming(metrics.durationNanos, metrics.cpuPercent, metrics.memoryMB);
             }
 
             PerformanceTestHelper.printResults(result);

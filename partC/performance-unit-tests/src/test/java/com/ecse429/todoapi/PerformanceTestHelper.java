@@ -4,6 +4,9 @@ import io.restassured.response.Response;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.OperatingSystemMXBean;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,6 +28,8 @@ public class PerformanceTestHelper {
         public String operationType;
         public List<Long> timingsNanos;
         public long totalTimeNanos;
+        public List<Double> cpuUsages;
+        public List<Double> memoryUsagesMB;
 
         public PerformanceResult(String testName, int objectCount, String operationType) {
             this.testName = testName;
@@ -32,11 +37,20 @@ public class PerformanceTestHelper {
             this.operationType = operationType;
             this.timingsNanos = new ArrayList<>();
             this.totalTimeNanos = 0;
+            this.cpuUsages = new ArrayList<>();
+            this.memoryUsagesMB = new ArrayList<>();
         }
 
         public void addTiming(long nanos) {
             timingsNanos.add(nanos);
             totalTimeNanos += nanos;
+        }
+
+        public void addTiming(long nanos, double cpuPercent, double memoryMB) {
+            timingsNanos.add(nanos);
+            totalTimeNanos += nanos;
+            cpuUsages.add(cpuPercent);
+            memoryUsagesMB.add(memoryMB);
         }
 
         public double getAverageMs() {
@@ -72,6 +86,18 @@ public class PerformanceTestHelper {
             } else {
                 return sorted.get(middle) / 1_000_000.0;
             }
+        }
+
+        public double getAverageCpuPercent() {
+            if (cpuUsages.isEmpty())
+                return 0;
+            return cpuUsages.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
+        }
+
+        public double getAverageMemoryMB() {
+            if (memoryUsagesMB.isEmpty())
+                return 0;
+            return memoryUsagesMB.stream().mapToDouble(Double::doubleValue).average().orElse(0.0);
         }
     }
 
@@ -324,10 +350,10 @@ public class PerformanceTestHelper {
         String filepath = RESULTS_DIR + "/" + filename;
         try (FileWriter writer = new FileWriter(filepath)) {
             writer.append(
-                    "TestName,ObjectCount,OperationType,AverageTimeMs,MinTimeMs,MaxTimeMs,MedianTimeMs,TotalTimeMs,SampleCount,Timestamp\n");
+                    "TestName,ObjectCount,OperationType,AverageTimeMs,MinTimeMs,MaxTimeMs,MedianTimeMs,TotalTimeMs,AverageCpuPercent,AverageMemoryMB,SampleCount,Timestamp\n");
 
             for (PerformanceResult result : results) {
-                writer.append(String.format("%s,%d,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%d,%s\n",
+                writer.append(String.format("%s,%d,%s,%.3f,%.3f,%.3f,%.3f,%.3f,%.2f,%.2f,%d,%s\n",
                         result.testName,
                         result.objectCount,
                         result.operationType,
@@ -336,6 +362,8 @@ public class PerformanceTestHelper {
                         result.getMaxMs(),
                         result.getMedianMs(),
                         result.getTotalMs(),
+                        result.getAverageCpuPercent(),
+                        result.getAverageMemoryMB(),
                         result.timingsNanos.size(),
                         new Date().toString()));
             }
@@ -356,8 +384,38 @@ public class PerformanceTestHelper {
         System.out.println(String.format("Max Time: %.3f ms", result.getMaxMs()));
         System.out.println(String.format("Median Time: %.3f ms", result.getMedianMs()));
         System.out.println(String.format("Total Time: %.3f ms", result.getTotalMs()));
+        System.out.println(String.format("Average CPU%%: %.2f%%", result.getAverageCpuPercent()));
+        System.out.println(String.format("Average Memory: %.2f MB", result.getAverageMemoryMB()));
         System.out.println("Sample Count: " + result.timingsNanos.size());
         System.out.println("==========================\n");
+    }
+
+    public static class OperationMetrics {
+        public long durationNanos;
+        public double cpuPercent;
+        public double memoryMB;
+
+        public OperationMetrics(long durationNanos, double cpuPercent, double memoryMB) {
+            this.durationNanos = durationNanos;
+            this.cpuPercent = cpuPercent;
+            this.memoryMB = memoryMB;
+        }
+    }
+
+    private static double getCpuUsage() {
+        OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
+        if (osBean instanceof com.sun.management.OperatingSystemMXBean) {
+            com.sun.management.OperatingSystemMXBean sunOsBean = (com.sun.management.OperatingSystemMXBean) osBean;
+            return sunOsBean.getProcessCpuLoad() * 100.0;
+        }
+        return 0.0;
+    }
+
+    private static double getMemoryUsageMB() {
+        MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
+        long usedMemory = memoryBean.getHeapMemoryUsage().getUsed() +
+                          memoryBean.getNonHeapMemoryUsage().getUsed();
+        return usedMemory / (1024.0 * 1024.0);
     }
 
     public static long measureOperation(Runnable operation) {
@@ -365,6 +423,33 @@ public class PerformanceTestHelper {
         operation.run();
         long endTime = System.nanoTime();
         return endTime - startTime;
+    }
+
+    public static OperationMetrics measureOperationWithMetrics(Runnable operation) {
+        // Capture baseline metrics
+        Runtime.getRuntime().gc(); // Suggest GC to get more accurate memory readings
+        try {
+            Thread.sleep(10); // Brief pause for metrics to stabilize
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        double cpuBefore = getCpuUsage();
+        double memBefore = getMemoryUsageMB();
+
+        long startTime = System.nanoTime();
+        operation.run();
+        long endTime = System.nanoTime();
+
+        // Capture metrics after operation
+        double cpuAfter = getCpuUsage();
+        double memAfter = getMemoryUsageMB();
+
+        // Calculate average CPU and memory during operation
+        double avgCpu = (cpuBefore + cpuAfter) / 2.0;
+        double avgMem = (memBefore + memAfter) / 2.0;
+
+        return new OperationMetrics(endTime - startTime, avgCpu, avgMem);
     }
 
     public static void createTodoCategoryRelationship(String todoId, String categoryId) {
